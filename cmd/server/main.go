@@ -22,7 +22,7 @@ func main() {
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler: r,
+		Handler:      r,
 	}
 
 	done := make(chan os.Signal, 1)
@@ -40,7 +40,7 @@ func main() {
 	<-done
 
 	log.Info().Msg("Closing server...")
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {

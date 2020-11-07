@@ -2,10 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 	"linkee/internal/linkee"
 	"net/http"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 )
 
 func NewMuxHandler() *mux.Router {
@@ -17,8 +21,8 @@ func NewMuxHandler() *mux.Router {
 
 func makeHandlers(r *mux.Router) {
 	r.HandleFunc("/", home)
-	r.HandleFunc("/{pageId}", getPage)
-	r.HandleFunc("/{pageId}/{linkId}", updateCounter)
+	r.HandleFunc("/{page-slug}", getPage)
+	r.HandleFunc("/{page-slug}/{link-slug}", updateCounter).Methods("PUT", "PATCH")
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -27,16 +31,17 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 func getPage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	pageId := vars["pageId"]
+	pageSlug := vars["page-slug"]
 	log.Info().
-		Str("pageId", pageId).
+		Str("pageSlug", pageSlug).
 		Str("method", "getPage").
 		Send()
 
-	repo := linkee.NewInMemoryRepository()
+	db := connect()
+	repo := linkee.NewMySQLRepository(db)
 	svc := linkee.NewService(repo)
 
-	page := svc.GetPage(pageId)
+	page := svc.GetPage(pageSlug)
 
 	res, err := json.Marshal(page)
 	if err != nil {
@@ -53,18 +58,30 @@ func getPage(w http.ResponseWriter, r *http.Request) {
 
 func updateCounter(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	pageId := vars["pageId"]
-	linkId := vars["linkId"]
+	pageSlug := vars["page-slug"]
+	linkSlug := vars["link-slug"]
 	log.Info().
-		Str("pageId", pageId).
-		Str("linkId", linkId).
+		Str("pageId", pageSlug).
+		Str("linkId", linkSlug).
 		Str("method", "updateCounter").
 		Send()
-	repo := linkee.NewInMemoryRepository()
+	db := connect()
+	repo := linkee.NewMySQLRepository(db)
 	svc := linkee.NewService(repo)
 
-	svc.UpdateCounter(pageId, linkId)
+	svc.UpdateCounter(pageSlug, linkSlug)
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func connect() *sqlx.DB {
+	db, err := sqlx.Connect("mysql", fmt.Sprintf("root:test@tcp(localhost:%d)/linkee_db", 33062))
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Couldn't connect to the database")
+	}
+
+	return db
 }

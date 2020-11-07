@@ -10,7 +10,7 @@ services:
       MYSQL_ROOT_PASSWORD: "test"
       MYSQL_DATABASE: "linkee_db"
     volumes:
-      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./testdata/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     ports:
       - ${DB_PORT:-3306}:3306
 
