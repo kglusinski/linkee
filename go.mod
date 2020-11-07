@@ -1,4 +1,4 @@
-module github.com/kglusinski/linkee
+module linkee
 
 go 1.15
 
